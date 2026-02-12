@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser")
 require("dotenv").config()
 
 const app = express()
+const protectedRoutes = require("./routes/protected.js")
 
 // Middleware
 app.use(express.json())
@@ -34,6 +35,8 @@ app.use((err, req, res, next) => {
     console.error(err.stack)
     res.status(500).json({ message: "Something went wrong!" })
 })
+
+app.use("/api/protected", protectedRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

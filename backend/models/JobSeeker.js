@@ -42,6 +42,12 @@ const jobSeekerSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    resetPasswordOtp: {
+        type: String
+    },
+    resetPasswordExpires: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now
