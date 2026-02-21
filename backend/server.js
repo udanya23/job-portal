@@ -15,6 +15,7 @@ app.use(cors({
     credentials: true
 }))
 app.use(cookieParser())
+app.use("/uploads", express.static("uploads"))
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URL)
@@ -23,20 +24,12 @@ mongoose.connect(process.env.MONGODB_URL)
 
 // Routes
 const authRoutes = require("./routes/auth")
+const jobRoutes = require("./routes/jobRoutes")
+const applicationRoutes = require("./routes/applicationRoutes")
+
 app.use("/api/auth", authRoutes)
-
-// Basic health check route
-app.get("/", (req, res) => {
-    res.json({ message: "Job Portal API is running" })
-})
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack)
-    res.status(500).json({ message: "Something went wrong!" })
-})
-
-app.use("/api/protected", protectedRoutes)
+app.use("/api/jobs", jobRoutes)
+app.use("/api/applications", applicationRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

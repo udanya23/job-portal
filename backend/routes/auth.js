@@ -1,10 +1,13 @@
 const express = require("express")
 const router = express.Router()
 const bcrypt = require("bcrypt")
+const authMiddleware = require("../middleware/authMiddleware");
 const jwt = require("jsonwebtoken")
 const JobSeeker = require("../models/JobSeeker")
 const Recruiter = require("../models/Recruiter")
 const transporter = require("../utils/mail")
+
+
 
 // Helper function to get the appropriate model based on role
 const getModel = (role) => {
@@ -408,6 +411,154 @@ router.post("/reset-password", async (req, res) => {
         res.status(500).json({ message: "Password reset failed. Please try again." })
     }
 })
+
+// ================= PROFILE ROUTES =================
+
+// Get Logged-in User Profile
+router.get("/profile", authMiddleware, async (req, res) => {
+    try {
+        const { id, role } = req.user;
+
+        const Model = getModel(role);
+        if (!Model) {
+            return res.status(400).json({ message: "Invalid role" });
+        }
+
+        const user = await Model.findById(id).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ ...user.toObject(), role });
+
+    } catch (err) {
+        console.log("Error in get profile:", err);
+        res.status(500).json({ message: "Failed to fetch profile" });
+    }
+});
+
+// Update Logged-in User Profile
+router.put("/profile", authMiddleware, async (req, res) => {
+    try {
+        const { id, role } = req.user;
+
+        const Model = getModel(role);
+        if (!Model) {
+            return res.status(400).json({ message: "Invalid role" });
+        }
+
+        const updatedUser = await Model.findByIdAndUpdate(
+            id,
+            req.body,
+            { new: true }
+        ).select("-password");
+
+        res.status(200).json({ ...updatedUser.toObject(), role });
+
+    } catch (err) {
+        console.log("Error in update profile:", err);
+        res.status(500).json({ message: "Profile update failed" });
+    }
+});
+
+
+// ================= MULTER CONFIGURATION =================
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        let dest = "uploads/";
+        if (file.fieldname === "profilePhoto") {
+            dest += "profilePhotos/";
+        } else if (file.fieldname === "resume") {
+            dest += "resumes/";
+        }
+        cb(null, dest);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    if (file.fieldname === "profilePhoto") {
+        if (file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Only images are allowed for profile photo!"), false);
+        }
+    } else if (file.fieldname === "resume") {
+        if (file.mimetype === "application/pdf") {
+            cb(null, true);
+        } else {
+            cb(new Error("Only PDF files are allowed for resume!"), false);
+        }
+    } else {
+        cb(null, true);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// Update Logged-in User Profile with Files
+router.put("/profile-full", authMiddleware, upload.fields([
+    { name: "profilePhoto", maxCount: 1 },
+    { name: "resume", maxCount: 1 }
+]), async (req, res) => {
+    try {
+        const { id, role } = req.user;
+        const Model = getModel(role);
+
+        if (!Model) {
+            return res.status(400).json({ message: "Invalid role" });
+        }
+
+        let updateData = { ...req.body };
+
+        // Parse JSON strings for arrays/objects if they come from FormData
+        if (typeof updateData.skills === 'string') {
+            try { updateData.skills = JSON.parse(updateData.skills); } catch (e) { }
+        }
+        if (typeof updateData.education === 'string') {
+            try { updateData.education = JSON.parse(updateData.education); } catch (e) { }
+        }
+        if (typeof updateData.experience === 'string') {
+            try { updateData.experience = JSON.parse(updateData.experience); } catch (e) { }
+        }
+
+        // Add file paths to update data
+        if (req.files) {
+            if (req.files.profilePhoto) {
+                updateData.profilePhoto = `/uploads/profilePhotos/${req.files.profilePhoto[0].filename}`;
+            }
+            if (req.files.resume) {
+                updateData.resume = `/uploads/resumes/${req.files.resume[0].filename}`;
+                updateData.resumeOriginalName = req.files.resume[0].originalname;
+                updateData.resumeUploadedAt = new Date();
+            }
+        }
+
+        const updatedUser = await Model.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true }
+        ).select("-password");
+
+        res.status(200).json({ ...updatedUser.toObject(), role });
+    } catch (err) {
+        console.log("Error in update profile with files:", err);
+        res.status(500).json({ message: err.message || "Profile update failed" });
+    }
+});
+
 
 module.exports = router
 

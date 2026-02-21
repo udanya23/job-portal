@@ -48,6 +48,58 @@ const jobSeekerSchema = new mongoose.Schema({
     resetPasswordExpires: {
         type: Date
     },
+    profilePhoto: {
+        type: String,
+        default: ""
+    },
+    resume: {
+        type: String,
+        default: ""
+    },
+    bio: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    skills: {
+        type: [String],
+        default: []
+    },
+    education: [{
+        institution: String,
+        degree: String,
+        year: String
+    }],
+    experience: [{
+        company: String,
+        role: String,
+        duration: String,
+        description: String
+    }],
+    resumeHeadline: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    currentSalary: {
+        type: String,
+        default: ""
+    },
+    totalExperience: {
+        type: String,
+        default: ""
+    },
+    availableToJoin: {
+        type: String,
+        default: ""
+    },
+    resumeOriginalName: {
+        type: String,
+        default: ""
+    },
+    resumeUploadedAt: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now

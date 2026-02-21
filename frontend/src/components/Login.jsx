@@ -20,10 +20,6 @@ const Login = () => {
         });
     };
 
-    const handleRoleChange = (e) => {
-        setRole(e.target.value);
-    };
-
     // Helper function to display messages with auto-dismiss
     const showMessage = (text, type) => {
         setMessage({ text, type });
@@ -33,7 +29,6 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        // Validation
         if (!formData.email || !formData.password) {
             showMessage('Please fill in all fields', 'error');
             return;
@@ -47,13 +42,11 @@ const Login = () => {
                 role: role
             });
 
-            // Store token and user info in localStorage
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
 
             showMessage(response.data.message, 'success');
 
-            // Reload to show home page
             setTimeout(() => {
                 window.location.href = '/';
             }, 1000);
@@ -65,109 +58,144 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-5">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10 max-w-md w-full transform transition-all hover:scale-[1.01] duration-300">
-                <h1 className="text-3xl font-bold text-gray-800 text-center mb-2">
-                    Welcome Back!
-                </h1>
-                <p className="text-gray-600 text-center mb-8 text-sm">
-                    Login to access your dashboard
-                </p>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 font-sans">
+            {/* Logo/Brand Section */}
+            <div className="mb-8 flex items-center gap-2">
+                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <span className="text-2xl font-bold text-slate-800 tracking-tight">CareerLink</span>
+            </div>
 
-                {/* Role Selection */}
-                {/* <div className="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                        Select Role *
-                    </label>
-                    <div className="flex gap-4">
-                        <label className="flex items-center cursor-pointer group">
-                            <input
-                                type="radio"
-                                name="role"
-                                value="jobseeker"
-                                checked={role === 'jobseeker'}
-                                onChange={handleRoleChange}
-                                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <span className="ml-2 text-gray-700 font-medium group-hover:text-indigo-600 transition-colors">Job Seeker</span>
-                        </label>
-                        <label className="flex items-center cursor-pointer group">
-                            <input
-                                type="radio"
-                                name="role"
-                                value="recruiter"
-                                checked={role === 'recruiter'}
-                                onChange={handleRoleChange}
-                                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <span className="ml-2 text-gray-700 font-medium group-hover:text-indigo-600 transition-colors">Recruiter</span>
-                        </label>
-                    </div>
-                </div> */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 md:p-10 max-w-md w-full">
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome Back</h1>
+                    <p className="text-slate-500 text-sm">Please enter your details to sign in to your account.</p>
+                </div>
 
                 {/* Message Display */}
                 {message.text && (
-                    <div className={`mb-6 p-4 rounded-lg text-sm font-medium border ${message.type === 'success'
-                        ? 'bg-green-100 text-green-800 border-green-200'
-                        : 'bg-red-100 text-red-800 border-red-200'
+                    <div className={`mb-6 p-4 rounded-lg text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-300 ${message.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        : 'bg-rose-50 text-rose-700 border border-rose-100'
                         }`}>
-                        {message.text}
+                        <div className="flex items-center gap-2">
+                            {message.type === 'success' ? (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            )}
+                            {message.text}
+                        </div>
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-5">
-                    {/* Email Input */}
+                <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Email Address *
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                            Email Address
                         </label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder="Enter your email"
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
-                        />
+                        <div className="relative">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" />
+                                </svg>
+                            </div>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="name@company.com"
+                                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 text-slate-900 placeholder-slate-400"
+                            />
+                        </div>
                     </div>
 
-                    {/* Password Input */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Password *
-                        </label>
+                        <div className="flex justify-between mb-2">
+                            <label className="text-sm font-bold text-slate-700">Password</label>
+                            <Link to="/forgot-password" size="sm" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <div className="relative group">
+                            <input
+                                type="password"
+                                name="password"
+                                required
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="••••••••"
+                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300 font-medium"
+                            />
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center">
                         <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            placeholder="Enter your password"
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
+                            id="remember-me"
+                            name="remember-me"
+                            type="checkbox"
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
                         />
+                        <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer select-none">
+                            Remember me for 30 days
+                        </label>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-lg mt-2"
+                        className="w-full py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-sm flex items-center justify-center gap-2"
                     >
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? (
+                            <>
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Signing in...</span>
+                            </>
+                        ) : (
+                            'Sign in'
+                        )}
                     </button>
                 </form>
 
-                <div className="text-center mt-4 text-sm text-gray-600">
-                    <Link to="/forgot-password" className="text-indigo-600 font-semibold hover:underline hover:text-indigo-700 transition-colors">
-                        Forgot Password?
-                    </Link>
+                <div className="relative mt-8">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-white px-3 text-slate-500 font-medium">New to CareerLink?</span>
+                    </div>
                 </div>
 
-                <div className="text-center mt-6 text-sm text-gray-600">
-                    Don't have an account?{' '}
-                    <Link to="/register" className="text-indigo-600 font-bold hover:underline hover:text-indigo-700 transition-colors">
-                        Register here
+                <div className="mt-6">
+                    <Link
+                        to="/register"
+                        className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all duration-200"
+                    >
+                        Create an account
                     </Link>
                 </div>
             </div>
+
+            <p className="mt-8 text-sm text-slate-500">
+                &copy; {new Date().getFullYear()} CareerLink. All rights reserved.
+            </p>
         </div>
     );
 };
