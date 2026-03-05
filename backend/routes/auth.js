@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken")
 const JobSeeker = require("../models/JobSeeker")
 const Recruiter = require("../models/Recruiter")
 const transporter = require("../utils/mail")
+const { generateAccessToken, generateRefreshToken } = require("../utils/generateTokens")
 
 
 
@@ -89,11 +90,6 @@ router.post("/verify-otp", async (req, res) => {
     try {
         const { email, otp, role } = req.body
 
-        console.log("=== VERIFY OTP DEBUG ===")
-        console.log("Received email:", email)
-        console.log("Received OTP:", otp)
-        console.log("Received role:", role)
-
         if (!email || !otp || !role) {
             return res.status(400).json({ "message": "Email, OTP and role are required" })
         }
@@ -103,22 +99,13 @@ router.post("/verify-otp", async (req, res) => {
             return res.status(400).json({ "message": "Invalid role" })
         }
 
-        console.log("Searching for user with email:", email, "in model:", role)
         const user = await Model.findOne({ email })
-        console.log("User found:", user ? "YES" : "NO")
-
         if (!user) {
-            console.log("ERROR: User not found in database")
             return res.status(400).json({ "message": "User not found" })
         }
 
-        console.log("User OTP from DB:", user.verificationOtp)
-        console.log("OTP Expires at:", user.otpExpires)
-        console.log("Current time:", Date.now())
-
         // Check OTP validity
         if (user.verificationOtp !== otp || user.otpExpires < Date.now()) {
-            console.log("ERROR: Invalid or expired OTP")
             return res.status(400).json({ "message": "Invalid or expired OTP" })
         }
 
@@ -126,10 +113,9 @@ router.post("/verify-otp", async (req, res) => {
         user.isVerified = true
         await user.save()
 
-        console.log("SUCCESS: User verified successfully")
         res.status(200).json({ "message": "OTP verified successfully" })
     } catch (err) {
-        console.log("Error in verify-otp:", err)
+        console.error("Error in verify-otp:", err)
         res.status(500).json({ "message": "Verification failed. Please try again." })
     }
 })
@@ -194,23 +180,24 @@ router.post("/register", async (req, res) => {
     }
 })
 
-// Login route
+// Login route — auto-detects role by searching both collections
 router.post("/login", async (req, res) => {
     try {
-        const { email, password, role } = req.body
+        const { email, password } = req.body
 
-        // Validate input
-        if (!email || !password || !role) {
-            return res.status(400).json({ message: "Email, password and role are required" })
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and password are required" })
         }
 
-        const Model = getModel(role)
-        if (!Model) {
-            return res.status(400).json({ message: "Invalid role" })
+        // Try JobSeeker first, then Recruiter — only match verified accounts
+        let user = await JobSeeker.findOne({ email, isVerified: true })
+        let role = "jobseeker"
+
+        if (!user) {
+            user = await Recruiter.findOne({ email, isVerified: true })
+            role = "recruiter"
         }
 
-        // Find user by email
-        const user = await Model.findOne({ email })
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password" })
         }
@@ -226,27 +213,32 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid email or password" })
         }
 
-        // Generate JWT token
-        const token = jwt.sign(
-            {
-                id: user._id,
-                email: user.email,
-                role: role,
-                name: user.name
-            },
-            process.env.JWT_SECRET || "your-secret-key-change-this-in-production",
-            { expiresIn: "7d" } // Token expires in 7 days
-        )
+        // Generate tokens
+        const payload = { id: user._id, email: user.email, role, name: user.name }
+        const accessToken = generateAccessToken(payload)
+        const refreshToken = generateRefreshToken(payload)
 
-        // Send response with token and user info
+        // Save refresh token to DB
+        user.refreshToken = refreshToken
+        await user.save()
+
+        // Set refresh token as HTTP-only cookie
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,
+            path: "/",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        })
+
         res.status(200).json({
             message: "Login successful",
-            token: token,
+            token: accessToken,
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: role,
+                role,
                 mobileNumber: user.mobileNumber,
                 ...(role === "jobseeker"
                     ? { address: user.address, gender: user.gender }
@@ -259,6 +251,55 @@ router.post("/login", async (req, res) => {
         console.log("Error in login:", err)
         res.status(500).json({ message: "Login failed. Please try again." })
     }
+})
+
+// Refresh token — issues a new access token using the HTTP-only cookie
+router.post("/refresh-token", async (req, res) => {
+    const refreshToken = req.cookies.refreshToken
+    if (!refreshToken)
+        return res.status(401).json({ message: "No refresh token provided" })
+    try {
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key")
+        const Model = getModel(decoded.role)
+        if (!Model)
+            return res.status(401).json({ message: "Invalid token" })
+        const user = await Model.findById(decoded.id)
+        if (!user || user.refreshToken !== refreshToken)
+            return res.status(401).json({ message: "Invalid or revoked refresh token" })
+        const newAccessToken = generateAccessToken({
+            id: user._id,
+            email: user.email,
+            role: decoded.role,
+            name: user.name
+        })
+        return res.status(200).json({ token: newAccessToken })
+    } catch (err) {
+        console.log("Error in refresh-token:", err)
+        return res.status(401).json({ message: "Refresh token expired or invalid" })
+    }
+})
+
+// Logout — clears the refresh token cookie and removes it from DB
+router.post("/logout", async (req, res) => {
+    const refreshToken = req.cookies.refreshToken
+    if (refreshToken) {
+        try {
+            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key")
+            const Model = getModel(decoded.role)
+            if (Model) {
+                const user = await Model.findById(decoded.id)
+                if (user) {
+                    user.refreshToken = ""
+                    await user.save()
+                }
+            }
+        } catch (err) {
+            // Token may already be expired — still clear the cookie
+            console.log("Logout: could not decode refresh token", err.message)
+        }
+    }
+    res.clearCookie("refreshToken", { httpOnly: true, path: "/" })
+    return res.status(200).json({ message: "Logged out successfully" })
 })
 
 // ========== FORGOT PASSWORD FUNCTIONALITY ==========
@@ -295,7 +336,7 @@ router.post("/forgot-password", async (req, res) => {
 
         // Send OTP email
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: process.env.EMAIL_USERNAME,
             to: email,
             subject: "Job Portal - Password Reset OTP",
             html: `
@@ -320,26 +361,7 @@ router.post("/forgot-password", async (req, res) => {
     }
 })
 
-// router.post("/forgot-password", async (req, res) => {
-//     const { email } = req.body
-//     console.log(email)
-//     const user = await User.findOne({ email })
-//     if (!user)
-//         return res.status(400).json({ "message": "user invalid" })
-//     const otp = Math.floor(Math.random() * 90000 + 10000)
-//     user.resetOtp = otp
-//     user.resetOtpExpires = Date.now() + 10*60*1000 //h*min*sec*millisec
-//     await user.save()
-//     await transporter.sendMail({
-//         from: process.env.EMAIL_USER,
-//         to: email,
-//         subject: "your OTP for password reset",
-//         html: `
-//         <h2>your otp <b>${otp}</b></h2>
-//         <p>this will expires in 10 minutes</p> `
-//     })
-//     res.status(200).json({"message":"sent otp successfully"})
-// })
+
 
 // Verify reset OTP
 router.post("/verify-reset-otp", async (req, res) => {

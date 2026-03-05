@@ -1,1 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
+
+:root {
+    --nav-height: 4rem;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Base card style */
+.clean-card {
+    @apply bg-white border border-slate-200/60 rounded-xl shadow-sm;
+}
+
+/* Interactive card */
+.hover-card {
+    @apply transition-all duration-200 hover:shadow-md hover:border-slate-300/60;
+}
+
+/* Highlight button */
+.btn-primary {
+    @apply bg-indigo-600 text-white font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm;
+}
+
+/* Secondary button */
+.btn-secondary {
+    @apply bg-white border border-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors;
+}
+
+/* Layout helper */
+.container-clean {
+    @apply max-w-6xl mx-auto px-4;
+}
+
+/* Subtle typography */
+.text-label {
+    @apply text-[11px] font-bold text-slate-400 uppercase tracking-widest;
+}
+
+.text-title {
+    @apply text-xl font-bold text-slate-900;
+}
+
+.text-subtitle {
+    @apply text-sm text-slate-500;
+}
+
+/* Smooth transitions */
+* {
+    @apply transition-colors duration-200;
+}

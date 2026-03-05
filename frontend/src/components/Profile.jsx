@@ -13,9 +13,9 @@ const InfoRow = ({ icon, text }) => (
 );
 
 const SectionCard = ({ id, title, action, children }) => (
-  <div id={id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 md:p-8">
-    <div className="flex justify-between items-center mb-5">
-      <h2 className="text-base font-extrabold text-slate-900">{title}</h2>
+  <div id={id} className="clean-card p-6 md:p-8 hover-card">
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
       {action}
     </div>
     {children}
@@ -178,46 +178,49 @@ const Profile = () => {
 
         {/* ── Global message ── */}
         {message.text && (
-          <div className={`p-4 rounded-xl text-sm font-semibold ${message.type === "success"
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-            : "bg-rose-50 text-rose-700 border border-rose-100"}`}>
+          <div className={`p-4 rounded-xl text-sm font-medium border ${message.type === "success"
+            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+            : "bg-rose-50 text-rose-700 border-rose-100"}`}>
+            <span className="mr-2">{message.type === "success" ? "✓" : "⚠"}</span>
             {message.text}
           </div>
         )}
 
         {/* ── HEADER CARD ── */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 md:p-8">
-          <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="clean-card p-6 md:p-10">
+          <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Avatar */}
             <div className="relative group shrink-0 cursor-pointer" onClick={() => openModal("photo")}>
               <Avatar src={photoPreview} name={user.name} size="xl"
-                className="ring-4 ring-indigo-100 shadow-md" />
-              <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                className="ring-4 ring-slate-100 shadow-sm" />
+              <div className="absolute inset-0 rounded-2xl bg-indigo-600/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-white/90 p-2 rounded-full shadow-sm text-indigo-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
               </div>
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3 mb-1">
-                <h1 className="text-2xl font-black text-slate-900 truncate">{user.name}</h1>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{user.name}</h1>
                 <button onClick={() => openModal("personal")}
-                  className="text-slate-400 hover:text-indigo-600 transition-colors">
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                       d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </button>
               </div>
-              <p className="text-xs text-slate-400 mb-4">
-                Profile last updated — {new Date(user.createdAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+              <p className="text-xs font-medium text-slate-400 mb-6 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                Updated {new Date(user.createdAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12">
                 <InfoRow icon="📍" text={user.address || "Location not set"} />
                 <InfoRow icon="📞" text={user.mobileNumber || "Mobile not set"} />
                 {user.role === "jobseeker" && (
@@ -237,17 +240,17 @@ const Profile = () => {
         <div className="flex flex-col lg:flex-row gap-5 items-start">
 
           {/* ── LEFT SIDEBAR ── */}
-          <div className="lg:w-48 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sticky top-8">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Quick links</p>
+          <div className="lg:w-48 shrink-0 clean-card p-5 sticky top-8">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-4">Quick links</p>
             <ul className="space-y-1">
               {sections.map((s) => (
                 <li key={s.key}>
                   <a href={`#section-${s.key}`}
-                    className="flex items-center justify-between py-2 text-sm text-slate-700 hover:text-indigo-600 font-medium transition-colors group">
+                    className="flex items-center justify-between py-2.5 px-3 rounded-lg text-sm text-slate-600 hover:text-indigo-600 hover:bg-slate-50 font-medium transition-all group">
                     <span>{s.label}</span>
                     {((s.key === "experience" && (!user.experience || user.experience.length === 0)) ||
                       (s.key === "education" && (!user.education || user.education.length === 0))) && (
-                        <span className="text-indigo-500 font-bold text-xs group-hover:underline">Add</span>
+                        <span className="text-indigo-500 font-bold text-[10px] uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add</span>
                       )}
                   </a>
                 </li>

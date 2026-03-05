@@ -26,12 +26,15 @@ mongoose.connect(process.env.MONGODB_URL)
 const authRoutes = require("./routes/auth")
 const jobRoutes = require("./routes/jobRoutes")
 const applicationRoutes = require("./routes/applicationRoutes")
+const notificationRoutes = require("./routes/notificationRoutes")
 
 app.use("/api/auth", authRoutes)
 app.use("/api/jobs", jobRoutes)
 app.use("/api/applications", applicationRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`)
 })
+

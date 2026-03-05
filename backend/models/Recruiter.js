@@ -48,6 +48,10 @@ const recruiterSchema = new mongoose.Schema({
     resetPasswordExpires: {
         type: Date
     },
+    refreshToken: {
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now

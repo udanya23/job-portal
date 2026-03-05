@@ -100,6 +100,10 @@ const jobSeekerSchema = new mongoose.Schema({
     resumeUploadedAt: {
         type: Date
     },
+    refreshToken: {
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now
