@@ -56,6 +56,8 @@ const Profile = () => {
   const photoInputRef = useRef(null);
   const resumeInputRef = useRef(null);
 
+  const [skillsText, setSkillsText] = useState((draft.skills || []).join("\n"));
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -111,6 +113,11 @@ const Profile = () => {
   const handleSave = async (extraFields = {}, files = {}) => {
     setLoading(true);
     try {
+      const skillsArray = skillsText
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
       const data = new FormData();
 
       const textFields = [
@@ -121,7 +128,10 @@ const Profile = () => {
 
       if (draft.education) data.append("education", JSON.stringify(draft.education));
       if (draft.experience) data.append("experience", JSON.stringify(draft.experience));
-      if (draft.skills) data.append("skills", JSON.stringify(draft.skills));
+      // if (draft.skills) data.append("skills", JSON.stringify(draft.skills));
+      // ⭐ use converted skills array
+      if (skillsArray.length > 0)
+        data.append("skills", JSON.stringify(skillsArray));
 
       Object.entries(extraFields).forEach(([k, v]) => data.set(k, v));
 
@@ -347,7 +357,7 @@ const Profile = () => {
                     setActiveModal("experience");
                   }}
                     className="text-indigo-600 font-bold text-sm hover:underline">
-                    + Add employment
+                    + Add experience
                   </button>
                 }>
                 {user.experience && user.experience.length > 0 ? (
@@ -507,10 +517,25 @@ const Profile = () => {
                   <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
                     Skills (one per line)
                   </label>
-                  <textarea rows="6" value={(draft.skills || []).join("\n")}
-                    onChange={(e) => setDraft({ ...draft, skills: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
+                  {/* <textarea rows="6" value={(draft.skills || []).join("\n")}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      skills: e.target.value
+                        .split(/[\n,]/) // split by newline OR comma
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                    })
+                  }
+                  placeholder={"Python\nJavaScript\nReact\nSQL Server"}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-medium resize-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all" /> */}
+                  <textarea
+                    rows="6"
+                    value={skillsText}
+                    onChange={(e) => setSkillsText(e.target.value)}
                     placeholder={"Python\nJavaScript\nReact\nSQL Server"}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-medium resize-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all" />
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-medium resize-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all"
+                  />
                   {draft.skills && draft.skills.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {draft.skills.map((s, i) => (
