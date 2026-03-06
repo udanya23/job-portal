@@ -336,7 +336,7 @@ router.post("/forgot-password", async (req, res) => {
 
         // Send OTP email
         await transporter.sendMail({
-            from: process.env.EMAIL_USERNAME,
+            from: process.env.EMAIL_USER,
             to: email,
             subject: "Job Portal - Password Reset OTP",
             html: `
