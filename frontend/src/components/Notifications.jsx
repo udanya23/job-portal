@@ -90,6 +90,15 @@ const Notifications = () => {
         } catch { }
     };
 
+    // Delete a single notification on X click
+    const deleteNotification = async (e, id) => {
+        e.stopPropagation(); // prevent triggering markRead
+        try {
+            await axios.delete(`/notifications/${id}`);
+            setNotifications(prev => prev.filter(n => n._id !== id));
+        } catch { }
+    };
+
     return (
         <div className="relative" ref={dropRef}>
             {/* Bell Button */}
@@ -100,7 +109,7 @@ const Notifications = () => {
             >
                 <BellIcon />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 min-w-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    <span className="absolute -top-1 -right-1 min-w-[18px] px-1 h-[18px] bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
                         {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                 )}
@@ -125,7 +134,7 @@ const Notifications = () => {
                             )}
                             {notifications.some(n => n.isRead) && (
                                 <button onClick={clearRead} className="text-[10px] font-bold text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors">
-                                    Clear
+                                    Clear read
                                 </button>
                             )}
                         </div>
@@ -139,7 +148,7 @@ const Notifications = () => {
                             </div>
                         ) : notifications.length === 0 ? (
                             <div className="py-12 text-center">
-                                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-slate-300">
                                     <BellIcon />
                                 </div>
                                 <p className="text-sm font-semibold text-slate-400">All caught up!</p>
@@ -147,20 +156,36 @@ const Notifications = () => {
                             </div>
                         ) : (
                             notifications.map((n) => (
-                                <button
+                                // group wrapper — hover reveals the × button
+                                <div
                                     key={n._id}
-                                    onClick={() => markRead(n)}
-                                    className={`w-full text-left px-4 py-3 flex gap-3 items-start hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${!n.isRead ? "bg-indigo-50/30" : ""}`}
+                                    className={`group relative flex gap-3 items-start px-4 py-3 border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50 ${!n.isRead ? "bg-indigo-50/30" : ""}`}
                                 >
-                                    {/* Dot indicator */}
-                                    <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? "bg-indigo-600" : "bg-slate-200"}`} />
-                                    <div className="min-w-0 flex-1">
-                                        <p className={`text-xs leading-relaxed ${!n.isRead ? "text-slate-800 font-semibold" : "text-slate-500 font-medium"}`}>
-                                            {n.message}
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 mt-1 font-medium">{timeAgo(n.createdAt)}</p>
-                                    </div>
-                                </button>
+                                    {/* Clickable notification body */}
+                                    <button
+                                        onClick={() => markRead(n)}
+                                        className="flex gap-3 items-start flex-1 text-left min-w-0"
+                                    >
+                                        {/* Dot indicator */}
+                                        <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? "bg-indigo-500" : "bg-slate-200"}`} />
+                                        <div className="min-w-0 flex-1 pr-4">
+                                            <p className={`text-xs leading-relaxed ${!n.isRead ? "text-slate-800 font-semibold" : "text-slate-500 font-medium"}`}>
+                                                {n.message}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 mt-1 font-medium">{timeAgo(n.createdAt)}</p>
+                                        </div>
+                                    </button>
+
+                                    {/* Dismiss × button — invisible until hover */}
+                                    <button
+                                        onClick={(e) => deleteNotification(e, n._id)}
+                                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 rounded-full bg-slate-200 hover:bg-rose-100 hover:text-rose-500 flex items-center justify-center text-slate-400 text-xs font-bold leading-none shrink-0"
+                                        title="Dismiss"
+                                        aria-label="Dismiss notification"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
                             ))
                         )}
                     </div>

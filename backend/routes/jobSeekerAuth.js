@@ -2,6 +2,7 @@ const express = require("express")
 const router = express.Router()
 const bcrypt = require("bcrypt")
 const JobSeeker = require("../models/JobSeeker")
+const Recruiter = require("../models/Recruiter")
 const transporter = require("../utils/mail")
 
 // Send OTP to email
@@ -13,9 +14,15 @@ router.post("/send-otp", async (req, res) => {
             return res.status(400).json({ "message": "Email is required" })
         }
 
-        // Check if user already registered
+        // Check if a verified Recruiter account already exists — prevent cross-role conflict
+        const existingRecruiter = await Recruiter.findOne({ email, isVerified: true })
+        if (existingRecruiter) {
+            return res.status(409).json({ "message": "This email is already registered as a recruiter. Please use a different email or log in as recruiter." })
+        }
+
+        // Check if jobseeker already fully registered
         const existingUser = await JobSeeker.findOne({ email })
-        if (existingUser && existingUser.isVerified) {
+        if (existingUser && existingUser.isVerified && existingUser.name !== "temp") {
             return res.status(409).json({ "message": "Email already registered" })
         }
 
@@ -26,6 +33,7 @@ router.post("/send-otp", async (req, res) => {
         if (existingUser) {
             existingUser.verificationOtp = otp
             existingUser.otpExpires = Date.now() + 10 * 60 * 1000 // 10 minutes
+            existingUser.isVerified = false // reset for re-registration
             await existingUser.save()
         } else {
             const tempUser = new JobSeeker({

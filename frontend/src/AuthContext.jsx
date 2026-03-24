@@ -13,7 +13,15 @@ export const AuthProvider = ({ children }) => {
         }
     })
 
-    function login(data) {
+    async function login(data) {
+        // Clear any existing session (cookie) before storing new credentials.
+        // This prevents stale refresh-token cookies from a previous account
+        // (e.g. job seeker) from being used when a different account (e.g. recruiter) logs in.
+        try {
+            await axiosInstance.post("/auth/logout")
+        } catch {
+            // Ignore — if there was no session to clear, that's fine
+        }
         localStorage.setItem("token", data.token)
         localStorage.setItem("user", JSON.stringify(data.user))
         setUser(data.user)

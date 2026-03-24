@@ -7,6 +7,7 @@ const Login = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ email: '', password: '' });
+    const [role, setRole] = useState(''); // '' = auto-detect
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -27,13 +28,15 @@ const Login = () => {
         }
         setLoading(true);
         try {
-            const response = await axiosInstance.post('/auth/login', {
+            const payload = {
                 email: formData.email,
                 password: formData.password,
-            });
+                ...(role ? { role } : {}), // only send role if explicitly selected
+            };
+            const response = await axiosInstance.post('/auth/login', payload);
             login(response.data);
             showMessage(response.data.message, 'success');
-            setTimeout(() => navigate('/'), 1000);
+            setTimeout(() => navigate('/home'), 1000);
         } catch (error) {
             showMessage(error.response?.data?.message || 'Login failed', 'error');
         } finally {
@@ -79,6 +82,40 @@ const Login = () => {
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-5">
+
+                    {/* Role Selector */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Sign in as</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[
+                                { value: '', label: 'Auto-detect', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+                                { value: 'jobseeker', label: 'Job Seeker', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+                                { value: 'recruiter', label: 'Recruiter', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+                            ].map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setRole(opt.value)}
+                                    className={`flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all
+                                        ${role === opt.value
+                                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-900'
+                                        }`}
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={opt.icon} />
+                                    </svg>
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                        {role === '' && (
+                            <p className="mt-1.5 text-[11px] text-slate-400">
+                                Auto-detect finds your account automatically. Select a role if you're registered as both.
+                            </p>
+                        )}
+                    </div>
+
                     {/* Email */}
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
@@ -130,7 +167,7 @@ const Login = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center gap-2 shadow-sm"
+                        className="w-full py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-700 focus:ring-4 focus:ring-slate-500/20 disabled:opacity-70 disabled:cursor-not-allowed transition-colors text-sm flex items-center justify-center gap-2"
                     >
                         {loading ? (
                             <>
@@ -141,7 +178,7 @@ const Login = () => {
                                 Signing in...
                             </>
                         ) : (
-                            'Sign in'
+                            `Sign in${role === 'jobseeker' ? ' as Job Seeker' : role === 'recruiter' ? ' as Recruiter' : ''}`
                         )}
                     </button>
                 </form>
@@ -159,7 +196,7 @@ const Login = () => {
                 <div className="mt-5">
                     <Link
                         to="/register"
-                        className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
+                        className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors"
                     >
                         Create an account
                     </Link>

@@ -31,9 +31,17 @@ router.post("/send-otp", async (req, res) => {
             return res.status(400).json({ "message": "Invalid role" })
         }
 
-        // Check if user already registered
+        // Check if a verified account exists in the OPPOSITE role — prevent cross-role conflicts
+        const oppositeModel = role === "jobseeker" ? Recruiter : JobSeeker
+        const oppositeUser = await oppositeModel.findOne({ email, isVerified: true })
+        if (oppositeUser) {
+            const oppositeRole = role === "jobseeker" ? "recruiter" : "job seeker"
+            return res.status(409).json({ "message": `This email is already registered as a ${oppositeRole}. Please use a different email or log in as ${oppositeRole}.` })
+        }
+
+        // Check if user already registered and verified in this role
         const existingUser = await Model.findOne({ email })
-        if (existingUser && existingUser.isVerified) {
+        if (existingUser && existingUser.isVerified && existingUser.name !== "temp") {
             return res.status(409).json({ "message": "Email already registered" })
         }
 
@@ -44,6 +52,7 @@ router.post("/send-otp", async (req, res) => {
         if (existingUser) {
             existingUser.verificationOtp = otp
             existingUser.otpExpires = Date.now() + 10 * 60 * 1000 // 10 minutes
+            existingUser.isVerified = false // reset verification for re-registration
             await existingUser.save()
         } else {
             const tempUser = new Model({
@@ -180,31 +189,48 @@ router.post("/register", async (req, res) => {
     }
 })
 
-// Login route — auto-detects role by searching both collections
+// Login route — supports optional `role` for explicit login, otherwise auto-detects
 router.post("/login", async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password, role: requestedRole } = req.body
 
         if (!email || !password) {
             return res.status(400).json({ message: "Email and password are required" })
         }
 
-        // Try JobSeeker first, then Recruiter — only match verified accounts
-        let user = await JobSeeker.findOne({ email, isVerified: true })
-        let role = "jobseeker"
+        let user = null
+        let role = null
 
-        if (!user) {
-            user = await Recruiter.findOne({ email, isVerified: true })
-            role = "recruiter"
+        if (requestedRole) {
+            // Explicit role requested — look up only that collection
+            const Model = getModel(requestedRole)
+            if (!Model) {
+                return res.status(400).json({ message: "Invalid role specified" })
+            }
+            user = await Model.findOne({ email, isVerified: true })
+            // Skip incomplete temp accounts
+            if (user && user.name === "temp") user = null
+            role = requestedRole
+        } else {
+            // Auto-detect: try JobSeeker first, then Recruiter
+            // Skip incomplete temp accounts (isVerified=true but registration not completed)
+            const jsUser = await JobSeeker.findOne({ email, isVerified: true })
+            if (jsUser && jsUser.name !== "temp") {
+                user = jsUser
+                role = "jobseeker"
+            }
+
+            if (!user) {
+                const recUser = await Recruiter.findOne({ email, isVerified: true })
+                if (recUser && recUser.name !== "temp") {
+                    user = recUser
+                    role = "recruiter"
+                }
+            }
         }
 
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password" })
-        }
-
-        // Check if user is verified
-        if (!user.isVerified) {
-            return res.status(403).json({ message: "Please verify your email first" })
         }
 
         // Compare password

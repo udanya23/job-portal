@@ -5,9 +5,9 @@ function Layout() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
-      <div className="p-6">
+      <main>
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 }

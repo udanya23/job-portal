@@ -104,6 +104,10 @@ const jobSeekerSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    savedJobs: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Job"
+    }],
     createdAt: {
         type: Date,
         default: Date.now

@@ -42,16 +42,16 @@ function Navbar() {
 
   const navLinkClass = (path) =>
     `text-sm font-medium transition-colors py-1.5 px-3 rounded-lg ${isActive(path)
-      ? "text-indigo-600 bg-indigo-50 font-semibold"
-      : "text-slate-500 hover:text-indigo-600 hover:bg-slate-50"
+      ? "text-slate-900 font-semibold bg-slate-100"
+      : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
     }`;
 
   return (
-    <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center gap-4">
 
         {/* Logo */}
-        <Link to="/home" className="flex items-center gap-2 group shrink-0">
+        <Link to={user ? "/home" : "/"} className="flex items-center gap-2 group shrink-0">
           <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-100 group-hover:scale-105 transition-transform">
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -62,9 +62,22 @@ function Navbar() {
 
         {/* Nav Links */}
         <div className="hidden md:flex items-center gap-1">
-          <Link to="/home" className={navLinkClass("/home")}>
-            Dashboard
-          </Link>
+          {!user && (
+            <>
+              <a href="/#categories" className={navLinkClass("/#categories")}>
+                Categories
+              </a>
+              <a href="/#faqs" className={navLinkClass("/#faqs")}>
+                FAQs
+              </a>
+            </>
+          )}
+
+          {user && (
+            <Link to="/home" className={navLinkClass("/home")}>
+              Dashboard
+            </Link>
+          )}
 
           {user?.role === "jobseeker" && (
             <Link to="/my-applications" className={navLinkClass("/my-applications")}>
@@ -72,9 +85,21 @@ function Navbar() {
             </Link>
           )}
 
+          {user?.role === "jobseeker" && (
+            <Link to="/saved-jobs" className={navLinkClass("/saved-jobs")}>
+              Saved Jobs
+            </Link>
+          )}
+
           {user?.role === "recruiter" && (
             <Link to="/post-job" className={navLinkClass("/post-job")}>
               Post Job
+            </Link>
+          )}
+
+          {user?.role === "recruiter" && (
+            <Link to="/applicants" className={navLinkClass("/applicants")}>
+              All Applicants
             </Link>
           )}
 
@@ -100,61 +125,67 @@ function Navbar() {
             </div>
             <button
               type="submit"
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-indigo-200 shrink-0"
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-colors shrink-0"
             >
               Search
             </button>
           </div>
         </form>
 
-        {/* Right: Notifications + Profile */}
+        {/* Right: Notifications + Profile / Login */}
         <div className="flex items-center gap-2">
-          {user && <Notifications />}
+          {user ? (
+            <>
+              <Notifications />
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setProfileOpen((p) => !p)}
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-colors group"
+                >
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0 group-hover:bg-indigo-700 transition-colors">
+                    {initials}
+                  </div>
+                  <div className="hidden sm:flex flex-col items-start leading-none">
+                    <span className="text-xs font-semibold text-slate-800">{user.name}</span>
+                    <span className="text-[10px] text-indigo-500 font-medium capitalize mt-0.5">{user.role}</span>
+                  </div>
+                  <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${profileOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-          {user && (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setProfileOpen((p) => !p)}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-colors group"
-              >
-                {/* Avatar */}
-                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0 group-hover:bg-indigo-700 transition-colors">
-                  {initials}
-                </div>
-                <div className="hidden sm:flex flex-col items-start leading-none">
-                  <span className="text-xs font-semibold text-slate-800">{user.name}</span>
-                  <span className="text-[10px] text-indigo-500 font-medium capitalize mt-0.5">{user.role}</span>
-                </div>
-                <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${profileOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Dropdown */}
-              {profileOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl border border-slate-100 shadow-lg shadow-slate-200/60 py-1 z-50">
-                  <Link
-                    to="/profile"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    My Profile
-                  </Link>
-                  <div className="my-1 border-t border-slate-100" />
-                  <button
-                    onClick={() => { setProfileOpen(false); handleLogout(); }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Sign Out
-                  </button>
-                </div>
-              )}
+                {/* Dropdown */}
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl border border-slate-100 shadow-lg shadow-slate-200/60 py-1 z-50">
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      My Profile
+                    </Link>
+                    <div className="my-1 border-t border-slate-100" />
+                    <button
+                      onClick={() => { setProfileOpen(false); handleLogout(); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Sign in</Link>
+              <Link to="/register" className="px-4 py-2 bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition-colors">Join Now</Link>
             </div>
           )}
         </div>

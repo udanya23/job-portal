@@ -32,6 +32,10 @@ const recruiterSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    profilePhoto: {
+        type: String,
+        default: ""
+    },
     verificationOtp: {
         type: String
     },

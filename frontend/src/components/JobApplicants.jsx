@@ -16,8 +16,11 @@ const JobApplicants = () => {
     const { jobId } = useParams();
     const [job, setJob] = useState(null);
     const [applicants, setApplicants] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(null); // tracks which application is being updated
+    const [schedulingApp, setSchedulingApp] = useState(null);
+    const [interviewDate, setInterviewDate] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -37,6 +40,13 @@ const JobApplicants = () => {
         fetchData();
     }, [jobId]);
 
+    const filtered = applicants.filter(app => {
+        const q = searchQuery.toLowerCase();
+        return !q ||
+            app.applicant?.name?.toLowerCase().includes(q) ||
+            app.applicant?.email?.toLowerCase().includes(q);
+    });
+
     const handleStatusChange = async (applicationId, newStatus) => {
         setUpdating(applicationId);
         try {
@@ -47,6 +57,27 @@ const JobApplicants = () => {
             );
         } catch (err) {
             console.error("Failed to update status:", err);
+        } finally {
+            setUpdating(null);
+        }
+    };
+
+    const submitInterviewSchedule = async () => {
+        if (!interviewDate || !schedulingApp) return;
+        setUpdating(schedulingApp);
+        try {
+            const res = await axios.patch(`/applications/${schedulingApp}/status`, {
+                status: "Interviewing",
+                interviewDate
+            });
+            setApplicants(prev =>
+                prev.map(app => app._id === schedulingApp ? { ...app, status: res.data.status, interviewDate: res.data.interviewDate } : app)
+            );
+            setSchedulingApp(null);
+            setInterviewDate("");
+        } catch (err) {
+            console.error("Failed to schedule interview:", err);
+            alert("Failed to schedule interview. Please try again.");
         } finally {
             setUpdating(null);
         }
@@ -87,6 +118,24 @@ const JobApplicants = () => {
                     </div>
                 </div>
 
+                {/* Filters */}
+                {applicants.length > 0 && (
+                    <div className="clean-card p-5">
+                        <div className="relative max-w-sm">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                placeholder="Search applicants by name or email..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400 transition"
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* Applicants Table */}
                 {applicants.length === 0 ? (
                     <div className="clean-card p-20 flex flex-col items-center justify-center text-center">
@@ -97,6 +146,17 @@ const JobApplicants = () => {
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 mb-2">No applicants yet</h3>
                         <p className="text-slate-500 text-sm max-w-xs mx-auto">No one has applied for this position yet. Check back later.</p>
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="clean-card py-20 flex flex-col items-center justify-center text-center">
+                        <p className="text-lg font-bold text-slate-900 mb-2">No matches found</p>
+                        <p className="text-slate-500 text-sm">Try adjusting your search query.</p>
+                        <button
+                            onClick={() => setSearchQuery("")}
+                            className="mt-4 px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition uppercase tracking-widest"
+                        >
+                            Clear Search
+                        </button>
                     </div>
                 ) : (
                     <div className="clean-card overflow-hidden">
@@ -111,7 +171,7 @@ const JobApplicants = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {applicants.map((app) => (
+                                    {filtered.map((app) => (
                                         <tr key={app._id} className="hover:bg-slate-50/50 transition-all group">
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-3">
@@ -133,6 +193,24 @@ const JobApplicants = () => {
                                                 </span>
                                             </td>
                                             <td className="px-8 py-5">
+                                                {app.applicant?.resume ? (
+                                                    <a
+                                                        href={`http://localhost:5000/uploads/${app.applicant.resume}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title={app.applicant.resumeOriginalName || "Resume"}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-lg border border-indigo-100 transition-colors"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        View Resume
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-slate-300 text-sm font-medium">—</span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-5">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${STATUS_STYLE[app.status] || "bg-slate-50 text-slate-600 border-slate-100"}`}>
                                                     {app.status}
                                                 </span>
@@ -142,7 +220,14 @@ const JobApplicants = () => {
                                                     <select
                                                         value={app.status}
                                                         disabled={updating === app._id}
-                                                        onChange={(e) => handleStatusChange(app._id, e.target.value)}
+                                                        onChange={(e) => {
+                                                            const newStatus = e.target.value;
+                                                            if (newStatus === "Interviewing") {
+                                                                setSchedulingApp(app._id);
+                                                            } else {
+                                                                handleStatusChange(app._id, newStatus);
+                                                            }
+                                                        }}
                                                         className="appearance-none w-40 pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-500/50 outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                                                     >
                                                         {STATUS_OPTIONS.map(s => (
@@ -166,6 +251,43 @@ const JobApplicants = () => {
                 )}
 
             </div>
+
+            {/* Schedule Interview Modal */}
+            {schedulingApp && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Schedule Interview</h3>
+                        <p className="text-sm text-slate-500 mb-6">Select a date and time for the interview. An email invitation will be sent to the applicant automatically.</p>
+
+                        <div className="space-y-4 mb-8">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Interview Date & Time</label>
+                            <input
+                                type="datetime-local"
+                                value={interviewDate}
+                                onChange={e => setInterviewDate(e.target.value)}
+                                min={new Date().toISOString().slice(0, 16)}
+                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-500/50 outline-none transition-all font-medium text-slate-700"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setSchedulingApp(null); setInterviewDate(""); }}
+                                className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all uppercase tracking-widest"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitInterviewSchedule}
+                                disabled={!interviewDate}
+                                className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-widest shadow-lg shadow-indigo-200"
+                            >
+                                Schedule & Notify
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <p className="mt-16 text-center text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
                 CareerLink Professional · {new Date().getFullYear()}

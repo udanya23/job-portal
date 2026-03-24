@@ -109,147 +109,187 @@ const jobAlertHtml = (seeker, job, jobUrl) => `
 
 // Get all jobs
 router.get("/", async (req, res) => {
-    try {
-        const jobs = await Job.find().populate("recruiter", "name companyName")
-        res.status(200).json(jobs)
-    } catch (err) {
-        res.status(500).json({ message: "Failed to fetch jobs" })
+  try {
+    const jobs = await Job.find().populate("recruiter", "name companyName")
+    res.status(200).json(jobs)
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch jobs" })
+  }
+})
+
+// Get saved jobs (Job Seeker only)
+router.get("/saved", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "jobseeker") {
+      return res.status(403).json({ message: "Only job seekers can view saved jobs" })
     }
+    const seeker = await JobSeeker.findById(req.user.id).populate({
+      path: "savedJobs",
+      populate: { path: "recruiter", select: "name companyName companyAddress" }
+    })
+    if (!seeker) return res.status(404).json({ message: "User not found" })
+    res.status(200).json(seeker.savedJobs)
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch saved jobs" })
+  }
 })
 
 // Get single job
 router.get("/:id", async (req, res) => {
-    try {
-        const job = await Job.findById(req.params.id).populate("recruiter", "name companyName companyAddress")
-        if (!job) return res.status(404).json({ message: "Job not found" })
-        res.status(200).json(job)
-    } catch (err) {
-        res.status(500).json({ message: "Failed to fetch job details" })
-    }
+  try {
+    const job = await Job.findById(req.params.id).populate("recruiter", "name companyName companyAddress")
+    if (!job) return res.status(404).json({ message: "Job not found" })
+    res.status(200).json(job)
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch job details" })
+  }
 })
 
 // Create job (Recruiter only)
 router.post("/", authMiddleware, async (req, res) => {
-    try {
-        if (req.user.role !== "recruiter") {
-            return res.status(403).json({ message: "Only recruiters can post jobs" })
-        }
-
-        const { title, description, companyName, location, salary, requirements, experience } = req.body
-        const newJob = new Job({
-            title,
-            description,
-            companyName,
-            location,
-            salary,
-            requirements,
-            experience: experience || "0-1",
-            recruiter: req.user.id
-        })
-
-        await newJob.save()
-
-        // ── Notification for the recruiter ────────────────────────────────
-        await Notification.create({
-            recipient: req.user.id,
-            recipientRole: "recruiter",
-            message: `Your job "${title}" was posted successfully.`,
-            link: `/jobs/${newJob._id}`
-        })
-
-        // ── Email matched job seekers based on skill overlap ──────────────
-        if (requirements && requirements.length > 0) {
-            // Case-insensitive skill match
-            const regexFilters = requirements.map(skill => new RegExp(`^${skill}$`, "i"))
-            const matchedSeekers = await JobSeeker.find({
-                skills: { $in: regexFilters },
-                isVerified: true
-            }).select("name email")
-
-            const jobUrl = `http://localhost:5173/jobs/${newJob._id}`
-
-            // Send emails + in-app notifications concurrently (fire-and-forget)
-            const emailPromises = matchedSeekers.map(async (seeker) => {
-                try {
-                    // Email
-                    await transporter.sendMail({
-                        from: `"CareerLink" <${process.env.EMAIL_USER}>`,
-                        to: seeker.email,
-                        subject: `🚀 New Job Alert: ${title} at ${companyName}`,
-                        html: jobAlertHtml(seeker, newJob, jobUrl)
-                    })
-                    // In-app notification
-                    await Notification.create({
-                        recipient: seeker._id,
-                        recipientRole: "jobseeker",
-                        message: `New job matching your skills: "${title}" at ${companyName} (${location})`,
-                        link: `/jobs/${newJob._id}`
-                    })
-                } catch (e) {
-                    console.error(`Failed to notify seeker ${seeker.email}:`, e.message)
-                }
-            })
-
-            // Don't await — respond immediately, emails send in background
-            Promise.all(emailPromises).catch(console.error)
-        }
-
-        res.status(201).json(newJob)
-    } catch (err) {
-        console.error("Failed to create job:", err)
-        res.status(500).json({ message: "Failed to create job" })
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ message: "Only recruiters can post jobs" })
     }
+
+    const { title, description, companyName, location, salary, requirements, experience } = req.body
+    const newJob = new Job({
+      title,
+      description,
+      companyName,
+      location,
+      salary,
+      requirements,
+      experience: experience || "0-1",
+      recruiter: req.user.id
+    })
+
+    await newJob.save()
+
+    // ── Notification for the recruiter ────────────────────────────────
+    await Notification.create({
+      recipient: req.user.id,
+      recipientRole: "recruiter",
+      message: `Your job "${title}" was posted successfully.`,
+      link: `/jobs/${newJob._id}`
+    })
+
+    // ── Email matched job seekers based on skill overlap ──────────────
+    if (requirements && requirements.length > 0) {
+      // Case-insensitive skill match
+      const regexFilters = requirements.map(skill => new RegExp(`^${skill}$`, "i"))
+      const matchedSeekers = await JobSeeker.find({
+        skills: { $in: regexFilters },
+        isVerified: true
+      }).select("name email")
+
+      const jobUrl = `http://localhost:5173/jobs/${newJob._id}`
+
+      // Send emails + in-app notifications concurrently (fire-and-forget)
+      const emailPromises = matchedSeekers.map(async (seeker) => {
+        try {
+          // Email
+          await transporter.sendMail({
+            from: `"CareerLink" <${process.env.EMAIL_USER}>`,
+            to: seeker.email,
+            subject: `🚀 New Job Alert: ${title} at ${companyName}`,
+            html: jobAlertHtml(seeker, newJob, jobUrl)
+          })
+          // In-app notification
+          await Notification.create({
+            recipient: seeker._id,
+            recipientRole: "jobseeker",
+            message: `New job matching your skills: "${title}" at ${companyName} (${location})`,
+            link: `/jobs/${newJob._id}`
+          })
+        } catch (e) {
+          console.error(`Failed to notify seeker ${seeker.email}:`, e.message)
+        }
+      })
+
+      // Don't await — respond immediately, emails send in background
+      Promise.all(emailPromises).catch(console.error)
+    }
+
+    res.status(201).json(newJob)
+  } catch (err) {
+    console.error("Failed to create job:", err)
+    res.status(500).json({ message: "Failed to create job" })
+  }
 })
 
 // Update job (Recruiter only, must own the job)
 router.put("/:id", authMiddleware, async (req, res) => {
-    try {
-        if (req.user.role !== "recruiter") {
-            return res.status(403).json({ message: "Only recruiters can update jobs" })
-        }
-
-        const job = await Job.findById(req.params.id)
-        if (!job) return res.status(404).json({ message: "Job not found" })
-
-        if (job.recruiter.toString() !== req.user.id) {
-            return res.status(403).json({ message: "You can only update your own job posts" })
-        }
-
-        const { title, description, companyName, location, salary, requirements, experience } = req.body
-        job.title = title ?? job.title
-        job.description = description ?? job.description
-        job.companyName = companyName ?? job.companyName
-        job.location = location ?? job.location
-        job.salary = salary ?? job.salary
-        job.requirements = requirements ?? job.requirements
-        job.experience = experience ?? job.experience
-
-        await job.save()
-        res.status(200).json(job)
-    } catch (err) {
-        res.status(500).json({ message: "Failed to update job" })
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ message: "Only recruiters can update jobs" })
     }
+
+    const job = await Job.findById(req.params.id)
+    if (!job) return res.status(404).json({ message: "Job not found" })
+
+    if (job.recruiter.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only update your own job posts" })
+    }
+
+    const { title, description, companyName, location, salary, requirements, experience } = req.body
+    job.title = title ?? job.title
+    job.description = description ?? job.description
+    job.companyName = companyName ?? job.companyName
+    job.location = location ?? job.location
+    job.salary = salary ?? job.salary
+    job.requirements = requirements ?? job.requirements
+    job.experience = experience ?? job.experience
+
+    await job.save()
+    res.status(200).json(job)
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update job" })
+  }
 })
 
 // Delete job (Recruiter only, must own the job)
 router.delete("/:id", authMiddleware, async (req, res) => {
-    try {
-        if (req.user.role !== "recruiter") {
-            return res.status(403).json({ message: "Only recruiters can delete jobs" })
-        }
-
-        const job = await Job.findById(req.params.id)
-        if (!job) return res.status(404).json({ message: "Job not found" })
-
-        if (job.recruiter.toString() !== req.user.id) {
-            return res.status(403).json({ message: "You can only delete your own job posts" })
-        }
-
-        await job.deleteOne()
-        res.status(200).json({ message: "Job deleted successfully" })
-    } catch (err) {
-        res.status(500).json({ message: "Failed to delete job" })
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ message: "Only recruiters can delete jobs" })
     }
+
+    const job = await Job.findById(req.params.id)
+    if (!job) return res.status(404).json({ message: "Job not found" })
+
+    if (job.recruiter.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only delete your own job posts" })
+    }
+
+    await job.deleteOne()
+    res.status(200).json({ message: "Job deleted successfully" })
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete job" })
+  }
+})
+
+// Toggle save job (Job Seeker only)
+router.post("/:id/save", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "jobseeker") {
+      return res.status(403).json({ message: "Only job seekers can save jobs" })
+    }
+    const jobId = req.params.id
+    const seeker = await JobSeeker.findById(req.user.id)
+    if (!seeker) return res.status(404).json({ message: "User not found" })
+
+    const index = seeker.savedJobs.indexOf(jobId)
+    if (index === -1) {
+      seeker.savedJobs.push(jobId)
+    } else {
+      seeker.savedJobs.splice(index, 1)
+    }
+    await seeker.save()
+    res.status(200).json({ savedJobs: seeker.savedJobs, message: index === -1 ? "Job saved" : "Job removed from saved" })
+  } catch (err) {
+    res.status(500).json({ message: "Failed to toggle saved job" })
+  }
 })
 
 module.exports = router

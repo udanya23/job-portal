@@ -7,48 +7,74 @@
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-white text-slate-900 antialiased;
 }
 
-/* Base card style */
+/* ── Linear-inspired card ── */
 .clean-card {
-    @apply bg-white border border-slate-200/60 rounded-xl shadow-sm;
+    @apply bg-white border border-slate-200 rounded-xl;
 }
 
-/* Interactive card */
-.hover-card {
-    @apply transition-all duration-200 hover:shadow-md hover:border-slate-300/60;
-}
-
-/* Highlight button */
+/* ── Primary Button (black, Linear style) ── */
 .btn-primary {
-    @apply bg-indigo-600 text-white font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm;
+    @apply inline-flex items-center justify-center px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 transition-colors cursor-pointer;
 }
 
-/* Secondary button */
+/* ── Secondary Button ── */
 .btn-secondary {
-    @apply bg-white border border-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors;
+    @apply inline-flex items-center justify-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer;
 }
 
-/* Layout helper */
-.container-clean {
-    @apply max-w-6xl mx-auto px-4;
+/* ── Hover card lift ── */
+.hover-card {
+    @apply hover:border-slate-300 hover:shadow-sm transition-all duration-200;
 }
 
-/* Subtle typography */
-.text-label {
-    @apply text-[11px] font-bold text-slate-400 uppercase tracking-widest;
+/* ── Glass effect (kept for compatibility) ── */
+.glass {
+    @apply bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm;
 }
 
-.text-title {
-    @apply text-xl font-bold text-slate-900;
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
 }
 
-.text-subtitle {
-    @apply text-sm text-slate-500;
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
 }
 
-/* Smooth transitions */
-* {
-    @apply transition-colors duration-200;
+::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+/* ── Animations ── */
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in {
+    animation: fade-in 0.6s ease-out both;
 }
