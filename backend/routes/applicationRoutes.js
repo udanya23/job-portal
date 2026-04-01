@@ -152,7 +152,7 @@ router.get("/my-jobs", authMiddleware, async (req, res) => {
 
         // Fetch all applications for those jobs
         const applications = await Application.find({ job: { $in: jobIds } })
-            .populate("applicant", "name email mobileNumber address gender")
+            .populate("applicant", "name email mobileNumber address gender resume resumeOriginalName")
             .populate("job", "title location companyName")
             .sort({ appliedDate: -1 })
 
@@ -237,10 +237,14 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
         await application.save()
 
         // Notify job seeker of status update
+        const notifMessage = status === "Interviewing" && interviewDate
+            ? `Interview scheduled for your application to "${application.job.title}" on ${new Date(interviewDate).toLocaleString("en-IN", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
+            : `Your application for "${application.job.title}" has been updated to: ${status}`;
+
         await Notification.create({
             recipient: application.applicant,
             recipientRole: "jobseeker",
-            message: `Your application for "${application.job.title}" has been updated to: ${status}`,
+            message: notifMessage,
             link: `/my-applications`
         })
 

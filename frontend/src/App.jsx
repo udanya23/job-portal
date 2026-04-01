@@ -15,6 +15,7 @@ import JobList from "./components/JobList";
 import JobDetails from "./components/JobDetails";
 import JobApplicants from "./components/JobApplicants";
 import AllApplicants from "./components/AllApplicants";
+import Interviews from "./components/Interviews";
 import LandingPage from "./components/Landingpage";
 import SavedJobs from "./components/SavedJobs";
 
@@ -68,6 +69,7 @@ function App() {
             <Route path="/jobs/:id/edit" element={<PostJob />} />
             <Route path="/jobs/:jobId/applicants" element={<JobApplicants />} />
             <Route path="/applicants" element={<AllApplicants />} />
+            <Route path="/interviews" element={<Interviews />} />
           </Route>
         </Route>
 
