@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: '/api',
+    baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true // send HTTP-only refresh token cookie on every request
 });
 
@@ -29,8 +29,9 @@ axiosInstance.interceptors.response.use(
         ) {
             originalRequest._retry = true;
             try {
+                const baseURL = import.meta.env.VITE_API_URL || '';
                 const res = await axios.post(
-                    '/api/auth/refresh-token',
+                    `${baseURL}/api/auth/refresh-token`,
                     {},
                     { withCredentials: true }
                 );

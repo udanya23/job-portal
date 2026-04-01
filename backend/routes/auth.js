@@ -251,9 +251,9 @@ router.post("/login", async (req, res) => {
         // Set refresh token as HTTP-only cookie
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: false,
+            secure: process.env.NODE_ENV === "production",
             path: "/",
-            sameSite: "lax",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
 
@@ -324,7 +324,12 @@ router.post("/logout", async (req, res) => {
             console.log("Logout: could not decode refresh token", err.message)
         }
     }
-    res.clearCookie("refreshToken", { httpOnly: true, path: "/" })
+    res.clearCookie("refreshToken", { 
+        httpOnly: true, 
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    })
     return res.status(200).json({ message: "Logged out successfully" })
 })
 

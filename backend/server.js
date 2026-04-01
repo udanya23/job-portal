@@ -7,11 +7,15 @@ require("dotenv").config()
 const app = express()
 const protectedRoutes = require("./routes/protected.js")
 
+// Trust proxy is required if you are behind a load balancer (like Render)
+// so that Express will accept the X-Forwarded-Proto header for 'secure' cookies
+app.set("trust proxy", 1)
+
 // Middleware
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
-    origin: "http://localhost:5173", // Vite frontend URL
+    origin: "https://job-portal-1-hkru.onrender.com" || "http://localhost:5173", // Vite frontend URL
     credentials: true
 }))
 app.use(cookieParser())
